@@ -26,10 +26,80 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(readr)
 library(lmtest)
 ## CONTINUE ADDING NECESSARY LIBRARY COMPONENTS
-
+library(dplyr)
+library(tseries)
+library(forecast)
+library(sandwich)
+library(zoo)
+library(dplyr)
+library(ggplot2)
+library(broom)
+library(knitr)
 ```
 
 ```{r load-data}
 raw_data <- read_csv("fred_data.csv", show_col_types = FALSE)
+
+# Base period for real prices: August 2026 dollars
+cpi_ref <- raw %>%
+  filter(!is.na(TRFVOLUSM227NFWA), !is.na(CPIAUCSL)) %>%
+  slice_tail(n = 1) %>%
+  pull(CPIAUCSL)
+
+gas <- raw %>%
+  filter(!is.na(TRFVOLUSM227NFWA)) %>%
+  mutate(vmt_pc  = TRFVOLUSM227NFWA * 1e6 / (CNP16OV * 1e3),
+         rgas    = GASREGCOVM * cpi_ref / CPIAUCSL,
+         rdpi_pc = DSPIC96 * 1e9 / (CNP16OV * 1e3),
+         unrate  = UNRATE,
+         umcsent = UMCSENT) %>%
+  select(observation_date, vmt_pc, rgas, unrate, rdpi_pc, umcsent)
+
+# Monthly time series object (Oct 2025 stays NA; it is missing in the source)
+gas.ts <- ts(as.matrix(gas[, -1]), start = c(1999, 1), end = c(2026, 8), frequency = 12)
 ```
+
+```{r summary-stats, results='asis'}
+vars <- c("vmt_pc", "rgas", "unrate", "rdpi_pc", "umcsent")
+stats <- data.frame(
+  Variable = vars,
+  Mean = sapply(df[vars], mean, na.rm = TRUE),
+  SD   = sapply(df[vars], sd,   na.rm = TRUE),
+  Min  = sapply(df[vars], min,  na.rm = TRUE),
+  Max  = sapply(df[vars], max,  na.rm = TRUE),
+  Obs  = sapply(df[vars], function(x) sum(!is.na(x)))
+)
+kable(stats, digits = 2, row.names = FALSE, booktabs = TRUE,
+      caption = "Summary statistics, monthly, Jan 1999--Aug 2026") %>%
+  kable_styling(latex_options = "hold_position")
+```
+
+# 1. Question and hypothesis
 Does a rise in the real price of gasoline reduce how much Americans drive? We expect that the coefficient on the real gas price will be *negative*, thus signifying an inverse relationship between real gasoline prices and miles driven per person. Higher gas prices raise the cost of driving, incentivizing Americans to drive less miles or resort to alternative means of transportation as a cost-saving measure.
+
+# 2. Data
+
+**(a) Source and structure.** Federal Reserve Bank of St. Louis, FRED, \url{https://fred.stlouisfed.org}; series TRFVOLUSM227NFWA (vehicle miles traveled; FHWA), GASREGCOVM (regular gasoline price; EIA), CPIAUCSL (CPI-U, SA; BLS), UNRATE (BLS), DSPIC96 (real disposable personal income; BEA), UMCSENT (University of Michigan), CNP16OV (population 16+; BLS), each at \url{https://fred.stlouisfed.org/series/<ID>}. Accessed: [insert download date]; version: FRED vintage at download (latest VMT observation Aug 2026). Unit of observation: the United States in one calendar month. Structure: single-unit aggregate time series, $N=1$, $T=332$ months (Jan 1999--Aug 2026); 331 months are usable because CPI, unemployment, income and population are missing in the source for Oct 2025.
+
+**(b) Variables.**
+
+```{r variable_table}
+vartab <- data.frame(
+  Variable   = c("vmt_pc", "rgas", "unrate", "rdpi_pc", "umcsent"),
+  Definition = c("Total VMT / population 16+ (TRFVOLUSM227NFWA, CNP16OV)",
+                 "Regular gasoline price deflated by CPI-U (GASREGCOVM, CPIAUCSL)",
+                 "Civilian unemployment rate (UNRATE)",
+                 "Real disposable income / population 16+ (DSPIC96, CNP16OV)",
+                 "Consumer sentiment (UMCSENT)"),
+  Units      = c("Miles per person per month",
+                 "Aug-2026 $ per gallon",
+                 "Percent",
+                 "2017 $ per person per year (SAAR)",
+                 "Index, 1966Q1 = 100"),
+  Role       = c("Outcome (logged)", "Main regressor (logged)", "Control",
+                 "Control (logged)", "Control")
+)
+kable(vartab, format = "latex", booktabs = TRUE,
+      align = c("l", "p{2.6in}", "p{1.4in}", "p{1.1in}"),
+      caption = "Variable definitions")
+```
