@@ -41,16 +41,13 @@ library(knitr)
 raw_data <- read_csv("fred_data.csv", show_col_types = FALSE)
 
 # Base period for real prices: August 2026 dollars
-cpi_ref <- raw %>%
-  filter(!is.na(TRFVOLUSM227NFWA), !is.na(CPIAUCSL)) %>%
-  slice_tail(n = 1) %>%
-  pull(CPIAUCSL)
+cpi_ref <- raw$CPIAUCSL[raw$observation_date == as.Date("2026-08-01")]
 
 gas <- raw %>%
-  filter(!is.na(TRFVOLUSM227NFWA)) %>%
-  mutate(vmt_pc  = TRFVOLUSM227NFWA * 1e6 / (CNP16OV * 1e3),
-         rgas    = GASREGCOVM * cpi_ref / CPIAUCSL,
-         rdpi_pc = DSPIC96 * 1e9 / (CNP16OV * 1e3),
+  filter(!is.na(TRFVOLUSM227NFWA)) %>%                            # Jan 1999 - Aug 2026
+  mutate(vmt_pc  = TRFVOLUSM227NFWA * 1e6 / (CNP16OV * 1e3),      # miles/person 16+/month
+         rgas    = GASREGCOVM * cpi_ref / CPIAUCSL,               # real $/gal (Aug-2026 $)
+         rdpi_pc = DSPIC96 * 1e9 / (CNP16OV * 1e3),               # 2017 $/person/yr
          unrate  = UNRATE,
          umcsent = UMCSENT) %>%
   select(observation_date, vmt_pc, rgas, unrate, rdpi_pc, umcsent)
@@ -75,6 +72,7 @@ kable(stats, digits = 2, row.names = FALSE, booktabs = TRUE,
 ```
 
 # 1. Question and hypothesis
+
 Does a rise in the real price of gasoline reduce how much Americans drive? We expect that the coefficient on the real gas price will be *negative*, thus signifying an inverse relationship between real gasoline prices and miles driven per person. Higher gas prices raise the cost of driving, incentivizing Americans to drive less miles or resort to alternative means of transportation as a cost-saving measure.
 
 # 2. Data
