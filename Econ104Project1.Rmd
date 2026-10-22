@@ -49,12 +49,16 @@ gas <- raw_data %>%
          rgas    = GASREGCOVM * cpi_ref / CPIAUCSL,               # real $/gal (Aug-2026 $)
          rdpi_pc = DSPIC96 * 1e9 / (CNP16OV * 1e3),               # 2017 $/person/yr
          unrate  = UNRATE,
-         umcsent = UMCSENT) %>%
-  select(observation_date, vmt_pc, rgas, unrate, rdpi_pc, umcsent)
+         umcsent = UMCSENT,
+         ln_vmt = log(vmt_pc),
+         ln_rgas = log(rgas),
+         ln_rdpi = log(rdpi_pc)) %>%
+  select(observation_date, vmt_pc, rgas, unrate, rdpi_pc, umcsent, ln_vmt, ln_rgas, ln_rdpi)
 
 # Monthly time series object (Oct 2025 stays NA; it is missing in the source)
 gas.ts <- ts(as.matrix(gas[, -1]), start = c(1999, 1), end = c(2026, 8), frequency = 12)
 ```
+
 # 1. Question and Hypothesis
 
 Does a rise in the real price of gasoline reduce how much Americans drive? We expect that the coefficient on the real gas price will be *negative*, thus signifying an inverse relationship between real gasoline prices and miles driven per person. Higher gas prices raise the cost of driving, incentivizing Americans to drive fewer miles or resort to alternative means of transportation as a cost-saving measure.
@@ -65,8 +69,8 @@ Does a rise in the real price of gasoline reduce how much Americans drive? We ex
 Federal Reserve Bank of St. Louis, FRED, \url{https://fred.stlouisfed.org}; series TRFVOLUSM227NFWA (vehicle miles traveled; FHWA), GASREGCOVM (regular gasoline price; EIA), CPIAUCSL (CPI-U, SA; BLS), UNRATE (BLS), DSPIC96 (real disposable personal income; BEA), UMCSENT (University of Michigan), CNP16OV (population 16+; BLS), each at \url{https://fred.stlouisfed.org/series/<ID>}.\
 Accessed: October 20, 2026; version: FRED vintage at download (latest VMT observation Aug 2026). Unit of observation: the United States in one calendar month. Structure: single-unit aggregate time series, $N=1$, $T=332$ months (Jan 1999--Aug 2026); 331 months are usable because CPI, unemployment, income and population are missing in the source for Oct 2025.\
 
- 
 **(b) Variables.**
+
 ```{r variable_table}
 vartab <- data.frame(
   Variable   = c("vmt_pc", "rgas", "unrate", "rdpi_pc", "umcsent"),
@@ -87,21 +91,19 @@ kable(vartab, format = "latex", booktabs = TRUE,
       align = c("l", "p{2.6in}", "p{1.4in}", "p{1.1in}"),
       caption = "Variable Definitions")
 ```
+
 \
 
-**(c) Intended Data Structure** 
-Our hypothesis' focus on the response to the stimuli of changing real gas prices requires tracking the variation in response/impact over time versus than being expressed in single-period units. Further, the monthly nature of a time series data structure allows for immediate and long term effects to changing real gas prices to be studied. However, the structure cannot reveal individual responses from households or regions, only the shifting trends in aggregate responses.
-
-
+**(c) Intended Data Structure** Our hypothesis' focus on the response to the stimuli of changing real gas prices requires tracking the variation in response/impact over time versus than being expressed in single-period units. Further, the monthly nature of a time series data structure allows for immediate and long term effects to changing real gas prices to be studied. However, the structure cannot reveal individual responses from households or regions, only the shifting trends in aggregate responses.
 
 # 3. Identification and Method
 
-
 # 4. Background
 
-
 # 5. Evidence of Data
-[add another model after summary statistics --> needs to inform our modeling choices with a one-sentence caption ... maybe an ACF that shows why our future modeling choice requires use of FGLS or HAC]
+
+[add another model after summary statistics --\> needs to inform our modeling choices with a one-sentence caption ... maybe an ACF that shows why our future modeling choice requires use of FGLS or HAC]
+
 ```{r summary-stats, results='asis'}
 vars <- c("vmt_pc", "rgas", "unrate", "rdpi_pc", "umcsent")
 stats <- data.frame(
