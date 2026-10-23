@@ -125,17 +125,20 @@ kable(stats, digits = 2, row.names = FALSE, booktabs = TRUE,
   kable_styling(latex_options = "HOLD_position")
 ```
 
-```{r ts-figure, fig.width = 7, fig.height = 5, fig.align = "center", fig.caption = "Figure 1: Most model variables display non-stationarity through trends while log vehicle miles driven shows seasonality and a drastic 2020 drop, so we expect to difference the data to adjust for seasonality and the pandemic"}
+```{r ts-figure, fig.width = 7.5, fig.height = 6.5, fig.align = "center", fig.cap = "Most model variables display non-stationarity through trends while log vehicle miles driven shows seasonality and a drastic 2020 drop, so we expect to difference the data to adjust for seasonality and the pandemic"}
 
 ## Stationarity Check, Revealing Trends and/or Seasonality that Call for Future Differencing in our Model
 ## Time Series Data for ALL Regressed Variables [Even Control]
 
-plot.ts(gas.ts[, c("ln_vmt", "ln_rgas", "unrate", "ln_rdpi", "umcsent")],
-        main = "Figure 1: Stationarity Check for Model Variables",
-        xlab = "Year")
+stationarity_check <- gas.ts[, vars]
+colnames(stationarity_check) <- c("ln_vmt (log miles)", "ln_rgas (log $/gal)", "unrate (%)", "ln_rdpi (log$)", "umcsent (index)")
+
+plot.ts(stationarity_check,
+        main = "Figure 1: Checking Stationary Within All Model Regressors",
+        xlab = "Year",
+        mar.multi = c(1, 8, 1, 2)) ##Adding Small Space Between Each Time Series Visualization
 
 ```
-Regressors log real gas price, income, unemployment, and consumer sentiment all display non-stationarity through the existence of trends while dependent variable log vehicle miles driven displays repetitive seasonality and a significant decline 2020. 
 
 \newpage
 
