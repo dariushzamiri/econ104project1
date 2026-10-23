@@ -34,10 +34,12 @@ library(ggplot2)
 library(broom)
 library(knitr)
 library(kableExtra)
+library(dynlm)
 
 ```
 
 ```{r load-data}
+
 raw_data <- read_csv("fred_data.csv", show_col_types = FALSE)
 
 # Base period for real prices: August 2026 dollars
@@ -70,42 +72,43 @@ Federal Reserve Bank of St. Louis, FRED, \url{https://fred.stlouisfed.org}; seri
 Accessed: October 20, 2026; version: FRED vintage at download (latest VMT observation Aug 2026). Unit of observation: the United States in one calendar month. Structure: single-unit aggregate time series, $N=1$, $T=332$ months (Jan 1999--Aug 2026); 331 months are usable because CPI, unemployment, income and population are missing in the source for Oct 2025.\
 
 **(b) Variables.**
-
 ```{r variable_table}
+
 vartab <- data.frame(
-  Variable   = c("vmt_pc", "rgas", "unrate", "rdpi_pc", "umcsent"),
-  Definition = c("Vehicle miles traveled per person aged 16+",
-                 "Regular gasoline price deflated by CPI-U",
+  Variable   = c("ln_vmt", "ln_rgas", "unrate", "ln_rdpi", "umcsent"),
+  Definition = c("Log of vehicle miles traveled per person aged 16+",
+                 "Log of regular gasoline price deflated by CPI-U",
                  "Civilian unemployment rate",
-                 "Real disposable income per person aged 16+",
+                 "Log of real disposable income per person aged 16+",
                  "Consumer sentiment"),
-  Units      = c("Miles per person per month",
-                 "Aug-2026 $ per gallon",
+  Units      = c("Log of miles per person per month",
+                 "Log of Aug-2026 $ per gallon",
                  "Percent",
-                 "2017 $ per person annually",
+                 "Log of 2017 $ per person annually",
                  "Index (1966Q1 = 100)"),
-  Role       = c("Outcome (logged)", "Main regressor (logged)", "Control",   #####did we/are we going to actually log any of thse?
-                 "Control (logged)", "Control")
+  Role       = c("Outcome", "Main regressor", "Control",
+                 "Control", "Control")
 )
 kable(vartab, format = "latex", booktabs = TRUE,
       align = c("l", "p{2.6in}", "p{1.4in}", "p{1.1in}"),
-      caption = "Variable Definitions")
+      caption = "Variable Definitions") %>%
+  kable_styling(latex_options = "HOLD_position")
 ```
 
-\
-
-**(c) Intended Data Structure** Our hypothesis' focus on the response to the stimuli of changing real gas prices requires tracking the variation in response/impact over time versus than being expressed in single-period units. Further, the monthly nature of a time series data structure allows for immediate and long term effects to changing real gas prices to be studied. However, the structure cannot reveal individual responses from households or regions, only the shifting trends in aggregate responses.
+**(c) Data Structure Justification**\
+Our hypothesis' focus on the response to changes in real gas prices requires tracking the variation in response/impact over time versus being expressed in single-period units. Further, the monthly nature of a time series data structure allows for immediate and long term effects to changing real gas prices to be studied. However, the structure cannot reveal individual responses from households or regions, only the shifting trends in aggregate responses.
 
 # 3. Identification and Method
+The main reason our coefficient might not reflect a causal effect is omitted variables. For example, global economic booms/downturns can shift both oil prices and demand for driving. Meanwhile, increasingly more fuel efficient vehicles can make each mile driven cheaper. Both factors correlate with gas prices but are absent from our model, possibly biasing the coefficient. Furthermore, we expect serial correlation between monthly errors in our time series data in a manner more complex than an AR(1) pattern. Thus, we expect having to use HAC (Newey-West) standard errors alongside differencing if needed.
 
 # 4. Background
 
+
 # 5. Evidence of Data
 
-[add another model after summary statistics --\> needs to inform our modeling choices with a one-sentence caption ... maybe an ACF that shows why our future modeling choice requires use of FGLS or HAC]
-
 ```{r summary-stats, results='asis'}
-vars <- c("vmt_pc", "rgas", "unrate", "rdpi_pc", "umcsent")
+
+vars <- c("ln_vmt", "ln_rgas", "unrate", "ln_rdpi", "umcsent")
 stats <- data.frame(
   Variable = vars,
   Mean = sapply(gas[vars], mean, na.rm = TRUE),
@@ -116,8 +119,20 @@ stats <- data.frame(
 )
 kable(stats, digits = 2, row.names = FALSE, booktabs = TRUE,
       caption = "Summary statistics, monthly, Jan 1999--Aug 2026") %>%
-  kable_styling(latex_options = "hold_position")
+  kable_styling(latex_options = "HOLD_position")
 ```
+
+```{r ts-figure, fig.width = 7, fig.height = 5, fig.align = "center", fig.caption = "Figure 1: Most model variables display non-stationarity through trends while log vehicle miles driven shows seasonality and a drastic 2020 drop, so we expect to difference the data to adjust for seasonality and the pandemic"}
+
+## Stationarity Check, Revealing Trends and/or Seasonality that Call for Future Differencing in our Model
+## Time Series Data for ALL Regressed Variables [Even Control]
+
+plot.ts(gas.ts[, c("ln_vmt", "ln_rgas", "unrate", "ln_rdpi", "umcsent")],
+        main = "Figure 1: Model Variables (Monthly; 1999-2026)",
+        xlab = "Year")
+
+```
+Regressors log real gas price, income, unemployment, and consumer sentiment all display non-stationarity through the existence of trends while dependent variable log vehicle miles driven displays repetitive seasonality and a significant decline 2020. 
 
 \newpage
 
