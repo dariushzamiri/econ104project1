@@ -109,13 +109,15 @@ The main reason our coefficient might not reflect a causal effect is omitted var
 ```{r summary-stats, results='asis'}
 
 vars <- c("ln_vmt", "ln_rgas", "unrate", "ln_rdpi", "umcsent")
+gas_complete <- na.omit(gas[vars]) ##removing any incomplete cases to ensure same amount of observations
+
 stats <- data.frame(
   Variable = vars,
-  Mean = sapply(gas[vars], mean, na.rm = TRUE),
-  SD   = sapply(gas[vars], sd,   na.rm = TRUE),
-  Min  = sapply(gas[vars], min,  na.rm = TRUE),
-  Max  = sapply(gas[vars], max,  na.rm = TRUE),
-  Obs  = sapply(gas[vars], function(x) sum(!is.na(x)))
+  Mean = sapply(gas_complete, mean),
+  SD   = sapply(gas_complete, sd),
+  Min  = sapply(gas_complete, min),
+  Max  = sapply(gas_complete, max),
+  Obs  = sapply(gas_complete, length)
 )
 kable(stats, digits = 2, row.names = FALSE, booktabs = TRUE,
       caption = "Summary statistics, monthly, Jan 1999--Aug 2026") %>%
