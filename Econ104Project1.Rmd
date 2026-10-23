@@ -68,7 +68,8 @@ Does a rise in the real price of gasoline reduce how much Americans drive? We ex
 # 2. Data
 
 **(a) Source and structure.**\
-Federal Reserve Bank of St. Louis, FRED, \url{https://fred.stlouisfed.org}; series TRFVOLUSM227NFWA (vehicle miles traveled; FHWA), GASREGCOVM (regular gasoline price; EIA), CPIAUCSL (CPI-U, SA; BLS), UNRATE (BLS), DSPIC96 (real disposable personal income; BEA), UMCSENT (University of Michigan), CNP16OV (population 16+; BLS), each at \url{https://fred.stlouisfed.org/series/<ID>}.\
+Federal Reserve Bank of St. Louis, FRED, \url{https://fred.stlouisfed.org}; series TRFVOLUSM227NFWA (vehicle miles traveled; FHWA), GASREGCOVM (regular gasoline price; EIA), CPIAUCSL (CPI-U, SA; BLS), UNRATE (BLS), DSPIC96 (real disposable personal income; BEA), UMCSENT (University of Michigan), CNP16OV (population 16+; BLS), each at \url{https://fred.stlouisfed.org/series/<ID>}.
+
 Accessed: October 20, 2026; version: FRED vintage at download (latest VMT observation Aug 2026). Unit of observation: the United States in one calendar month. Structure: single-unit aggregate time series, $N=1$, $T=332$ months (Jan 1999--Aug 2026); 331 months are usable because CPI, unemployment, income and population are missing in the source for Oct 2025.\
 
 **(b) Variables.**
@@ -130,7 +131,7 @@ kable(stats, digits = 2, row.names = FALSE, booktabs = TRUE,
 ## Time Series Data for ALL Regressed Variables [Even Control]
 
 plot.ts(gas.ts[, c("ln_vmt", "ln_rgas", "unrate", "ln_rdpi", "umcsent")],
-        main = "Figure 1: Model Variables (Monthly; 1999-2026)",
+        main = "Figure 1: Stationarity Check for Model Variables",
         xlab = "Year")
 
 ```
